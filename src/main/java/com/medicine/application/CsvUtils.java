@@ -47,11 +47,6 @@ public class CsvUtils {
             Iterable<CSVRecord> csvRecords = csvParser.getRecords();
 
             for (CSVRecord csvRecord : csvRecords) {
-                for(String name : HEADERs)
-                {
-                    System.out.print(csvRecord.get(name) + " ");
-                }
-                System.out.println();
                 Medicine medicine = new Medicine(
                         csvRecord.get(HEADERs[0]),
                         csvRecord.get(HEADERs[1]),

@@ -17,6 +17,9 @@ public class MedicineController {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private OrderSpecRepository orderSpecRepository;
+
 //    @PostMapping(value = "/uploadCSV", consumes = "text/csv")
 //    public void uploadCSV(@RequestBody InputStream body) throws IOException {
 //        medicineService.saveAll(CsvUtils.read(Medicine.class, body));
@@ -63,18 +66,31 @@ public class MedicineController {
     }
 
     @PostMapping("/placeOrder")
-    public int placeOrder(@RequestBody Order order) {
+    public int placeOrder(@RequestBody List<OrderSpec> orderSpecs) {
         List<Medicine> medicines = medicineService.listAllMedicines();
-        for (Medicine medicine : medicines) {
-            if (order.getC_unique_id() == medicine.getC_unique_code() && order.getC_name().equals(medicine.getC_name())) {
-                if (order.getQuantity() <= medicine.getN_balance_qty()) {
-                    medicine.setN_balance_qty(medicine.getN_balance_qty()-order.getQuantity());
-                    medicineService.saveMedicine(medicine);
-                    orderRepository.save(order);
-                    return order.order_id;
+
+        List<OrderSpec> specToBeSaved = new ArrayList<>();
+        for(OrderSpec orderSpec:orderSpecs) {
+            for (Medicine medicine : medicines) {
+                if (orderSpec.getC_unique_id() == medicine.getC_unique_code() && orderSpec.getC_name().equals(medicine.getC_name())) {
+                    if (orderSpec.getQuantity() <= medicine.getN_balance_qty()) {
+                        medicine.setN_balance_qty(medicine.getN_balance_qty() - orderSpec.getQuantity());
+                        medicineService.saveMedicine(medicine);
+                        specToBeSaved.add(orderSpec);
+                        break;
+                    }
                 }
             }
         }
-        return -1;
+        if(specToBeSaved.isEmpty()) {
+            return -1;
+        }
+
+        Order order = new Order();
+        orderRepository.save(order);
+
+        specToBeSaved.forEach(orderSpec -> {orderSpec.setOrder(order.getOrder_id());});
+        orderSpecRepository.saveAll(specToBeSaved);
+        return order.getOrder_id();
     }
 }
